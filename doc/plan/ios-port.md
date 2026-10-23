@@ -34,6 +34,14 @@ Apple App Review 2.5.2 对下载并执行改变 App 功能的代码有约束。�
 
 ### 2. 最小运行时验证（阻塞游戏启动）
 
+#### 已核查的静态 AOT 实施参考
+
+检索发现 [jhaizhou-ops/sts2-ios](https://github.com/jhaizhou-ops/sts2-ios)，核查快照为 `be1144212c7d5ac5d6c78fa56f7cb1d969397389`。该项目自己的 README 与构建代码使用 Mono.Cecil 静态织入补丁，再将游戏程序集通过 NativeAOT 编译成 iOS 原生库。这提供了一条无需把 Android Harmony 运行时直接搬到 iOS 的实施参考；本工程尚未集成或验证其游戏运行结果，不能引用上游的成功声明作为本项目的测试证据。
+
+已读其 `ios-export/build-ios.sh`、`config.example.sh` 和 `docs/THIRD_PARTY_LIBS.md`：当前脚本要求用户提供 macOS ARM64 版游戏 Resources（`data_sts2_macos_arm64` 与带空格名称的 PCK）、Godot 4.5.1 mono、.NET 9、匹配的 FMOD / Spine iOS 库。它不能直接接收本启动器当前 Windows 本地导入格式。上游第六步仍是签名装机指引，不能把运行该脚本描述为自动获得已签名 IPA。游戏引用与第三方 native SDK 尚未提供，现有公开 CI 只编译本项目 SwiftUI 版本管理器。
+
+若采用该路线，应先在私有构建环境验证一个明确游戏版本及其原生依赖，构建无商业资源的启动器代码与私有游戏产物分开管理。NativeAOT 将代码固定在构建产物中，因此版本 / C# 模组选择必须限制为已编译进对应 IPA 的组合，或为新组合重新构建并签名；下载 DLL 后立刻启动任意历史版本的需求不能按这一路线原样承诺。上游原创工具的 MIT 许可不覆盖游戏文件、FMOD 或 Spine；目前这里只记录评估来源，未复制其实现或二进制。
+
 需要 macOS + Xcode、目标 iPhone 的 iOS 版本与芯片、预期签名 / 安装方式；这些信息决定可用的运行时路线。先构建有触摸、音频与生命周期处理的合成 Godot C# 场景，分别记录：
 
 - ARM64 Mach-O 的原生依赖和 Godot / GodotSharp ABI 匹配。
