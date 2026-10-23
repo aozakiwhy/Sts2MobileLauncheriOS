@@ -2,9 +2,9 @@ name: iOS launcher foundation
 on:
   push:
     branches: [main, 'codex/ios-*']
-    paths: ['ios/**', '.github/workflows/ios.yml']
+    paths: ['ios/**', 'tools/ios/**', '.github/workflows/ios.yml']
   pull_request:
-    paths: ['ios/**', '.github/workflows/ios.yml']
+    paths: ['ios/**', 'tools/ios/**', '.github/workflows/ios.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -12,6 +12,12 @@ concurrency:
   group: ios-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 jobs:
+  pck-tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Synthetic PCK safety and metadata tests
+        run: python3 tools/ios/test_prepare_pck.py -v
   build:
     runs-on: macos-15
     steps:

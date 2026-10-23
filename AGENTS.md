@@ -11,6 +11,7 @@
 - iOS 导入仅在复制时流式 hash PCK / DLL，不能恢复复制后全量重读。异步 checkpoint 使 actor 可重入，必须保留单导入事务 guard；取消须传递到 utility worker。`ImportConditions` 仅控制导入期间的协作节流 / 过热停止，不是游戏 FPS 控制器或温度实测。修改后验证摘要一致性、热状态失败回滚与重选配置不写盘；不得以这些检查宣称游戏发热 / 掉帧已解决。
 - macOS 验证入口：`cd ios/Core && swift test`；随后在 `ios/` 执行 `xcodegen generate` 与 README 中的 `xcodebuild`。CI 配置为 `.github/workflows/ios.yml`，输出模拟器 `.app` 与 `ios-device-preview-unsigned` 真机未签名 IPA；`ios/package-unsigned.sh` 验证 iPhoneOS / ARM64 / Mach-O device 平台，不能把模拟器包充当真机包。用户须自行通过兼容安装工具签名，IPA 仍仅为版本管理器，不含游戏运行时。
 - 不提交生成的 Xcode 工程、DerivedData、游戏文件、Apple 签名资产；新增运行时须先完成合成 iPhone 验证，再接入游戏。Android importer 构建要求仍适用，但环境缺失应明确报告，不声称通过。
+- `tools/ios/prepare_pck.py` 仅在私有副本处理 PCK v3 的 Sentry 扩展注册与 ECFG autoload 键，兼容 `SentryInit` / `SentryBootstrap`；保留现有 C# 占位、其他资源偏移，输出先验证再发布。`python3 tools/ios/test_prepare_pck.py -v` 只使用合成资源。`tools/ios/core-patches.json` 是固定上游的 27 项基础补丁子集，参考源码许可证在同目录保留；实际用户游戏、native 依赖与织入 DLL 始终只放 ignored 的 `.agent/`，不提交或加入公开 CI。此准备工具不代表 iOS 游戏引擎已接通。
 
 ## 0. 总原则
 

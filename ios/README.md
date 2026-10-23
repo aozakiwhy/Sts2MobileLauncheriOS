@@ -99,6 +99,8 @@ bash package-unsigned.sh build-device/Build/Products/Release-iphoneos/Sts2Launch
 
 ## 后续移植门槛
 
+新增 [私有输入准备工具](../tools/ios/README.md)，用于独立处理未加密 PCK v3 的已知 Sentry 元数据键，并提供固定上游的基础补丁清单。通用源码和合成测试公开；私有输入、诊断结果与处理后的资产不公开。这些工具尚未接入 SwiftUI App，预览 IPA 的游戏功能状态不变。
+
 详见 [iOS 移植设计与验收](../doc/plan/ios-port.md)。首先用不含商业内容的最小 Godot C# 场景在实体 iPhone 验证运行时，再接入本地游戏。Android `.so` / AAR 和 Harmony 补丁不能重命名后作为 iOS runtime 使用。
 
 ## 开发参考
