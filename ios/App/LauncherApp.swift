@@ -26,6 +26,7 @@ final class LauncherModel: ObservableObject {
     @Published var message: String?
     private var library: PayloadLibrary?
     private var importTask: Task<Void, Never>?
+    private var payloadIndex: [UUID: InstalledPayload] = [:]
 
     init() {
         do {
@@ -39,13 +40,19 @@ final class LauncherModel: ObservableObject {
     }
 
     private func reload() async {
-        if let library { state = await library.snapshot() }
+        if let library {
+            let snapshot = await library.snapshot()
+            payloadIndex = Dictionary(uniqueKeysWithValues: snapshot.payloads.map { ($0.id, $0) })
+            state = snapshot
+        }
     }
+
+    func payload(for profile: LaunchProfile) -> InstalledPayload? { payloadIndex[profile.payloadID] }
 
     func importFolder(_ url: URL) {
         guard let library, !isImporting else { return }
         isImporting = true
-        importTask = Task {
+        importTask = Task(priority: .utility) {
             let scoped = url.startAccessingSecurityScopedResource()
             defer {
                 if scoped { url.stopAccessingSecurityScopedResource() }
@@ -53,7 +60,16 @@ final class LauncherModel: ObservableObject {
                 importTask = nil
             }
             do {
-                _ = try await library.importDirectory(url)
+                let worker = Task.detached(priority: .utility) {
+                    try await library.importDirectory(url)
+                }
+                _ = try await withTaskCancellationHandler {
+                    // Cover cancellation that arrived before the detached task was created.
+                    if Task.isCancelled { worker.cancel() }
+                    return try await worker.value
+                } onCancel: {
+                    worker.cancel()
+                }
                 await reload()
                 message = "本地版本已导入，并创建了独立存档和模组目录。游戏运行时尚未集成。"
             } catch is CancellationError {
@@ -65,7 +81,7 @@ final class LauncherModel: ObservableObject {
     func cancelImport() { importTask?.cancel() }
 
     func select(_ profile: LaunchProfile) {
-        guard let library, !isImporting else { return }
+        guard let library, !isImporting, state.selectedProfileID != profile.id else { return }
         Task {
             do {
                 try await library.select(profile.id)
@@ -107,7 +123,7 @@ struct LauncherView: View {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 5) {
                                         Text(profile.name).foregroundStyle(.primary)
-                                        if let payload = model.state.payloads.first(where: { $0.id == profile.payloadID }) {
+                                        if let payload = model.payload(for: profile) {
                                             Text(ByteCountFormatter.string(fromByteCount: payload.byteCount, countStyle: .file))
                                                 .font(.caption).foregroundStyle(.secondary)
                                             Text("DLL SHA256 · \(payload.dllSHA256.prefix(12))")
@@ -123,7 +139,7 @@ struct LauncherView: View {
                             .disabled(model.isImporting)
                         }
                         if model.isImporting {
-                            ProgressView("正在复制并校验文件，请保持应用在前台…")
+                            ProgressView("正在复制并校验，请保持前台；低电量或温度偏高时会减速…")
                             Button("取消导入", role: .cancel) { model.cancelImport() }
                         } else {
                             Button { choosingFolder = true } label: {

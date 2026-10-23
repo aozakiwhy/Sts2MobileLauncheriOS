@@ -33,6 +33,8 @@ public enum LauncherError: Error, LocalizedError {
     case damagedIndex
     case missingProfile
     case runtimeUnavailable
+    case importInProgress
+    case thermalLimited
 
     public var errorDescription: String? {
         switch self {
@@ -41,6 +43,8 @@ public enum LauncherError: Error, LocalizedError {
         case .limitExceeded: return "目录超出导入限制（16 GiB 或 100,000 个条目）。"
         case .damagedIndex: return "版本索引损坏或格式不受支持。原有文件已保留，请先备份再排查。"
         case .missingProfile: return "所选配置或游戏文件不存在，请重新导入。"
+        case .importInProgress: return "已有游戏目录正在导入，请等待或先取消。"
+        case .thermalLimited: return "系统报告设备温度较高，已停止导入并保留原有版本。请在降温后重新导入。"
         case .runtimeUnavailable:
             return "此构建尚未集成 iOS 游戏运行时。导入 PC 文件不代表已完成 iOS 移植；目前无法启动游戏。"
         }

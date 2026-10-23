@@ -1,5 +1,6 @@
 import Foundation
 import XCTest
+import CryptoKit
 @testable import LauncherCore
 
 final class PayloadLibraryTests: XCTestCase {
@@ -148,5 +149,91 @@ final class PayloadLibraryTests: XCTestCase {
 
     func testRuntimeCannotReportFalseLaunchSuccess() {
         XCTAssertThrowsError(try GameRuntime.launch())
+    }
+
+    func testStreamingDigestsMatchOriginalAcrossChunkBoundaries() async throws {
+        let source = try fixture("large", version: "test")
+        var pck = Data("GDPC".utf8)
+        pck.append(Data(repeating: 0x5a, count: 3 * 1024 * 1024 + 137))
+        try pck.write(to: source.appendingPathComponent("SlayTheSpire2.pck"))
+        let library = try PayloadLibrary(root: temporary.appendingPathComponent("library"))
+        let payload = try await library.importDirectory(source)
+        let expectedPCK = SHA256.hash(data: pck).map { String(format: "%02x", $0) }.joined()
+        let expectedDLL = SHA256.hash(data: Data("MZ-fixture".utf8)).map { String(format: "%02x", $0) }.joined()
+        XCTAssertEqual(payload.pckSHA256, expectedPCK)
+        XCTAssertEqual(payload.dllSHA256, expectedDLL)
+        let stored = temporary.appendingPathComponent("library/payloads/\(payload.id.uuidString)/game/SlayTheSpire2.pck")
+        XCTAssertEqual(try Data(contentsOf: stored), pck)
+    }
+
+    func testHotDeviceRejectsBeforeCopyAndCanRetryAfterCooling() async throws {
+        let readings = TestConditions()
+        readings.stop(after: 1)
+        let root = temporary.appendingPathComponent("library")
+        let library = try PayloadLibrary(root: root, conditions: { readings.read() })
+        let source = try fixture("source", version: "test")
+        do {
+            _ = try await library.importDirectory(source)
+            XCTFail("Hot import accepted")
+        } catch LauncherError.thermalLimited { }
+        XCTAssertFalse(fm.fileExists(atPath: root.appendingPathComponent("staging").path))
+        readings.stop(after: nil)
+        _ = try await library.importDirectory(source)
+        let state = await library.snapshot()
+        XCTAssertEqual(state.payloads.count, 1)
+    }
+
+    func testHeatDuringCopyRollsBackWithoutChangingPreviousVersion() async throws {
+        let readings = TestConditions()
+        let root = temporary.appendingPathComponent("library")
+        let library = try PayloadLibrary(root: root, conditions: { readings.read() })
+        _ = try await library.importDirectory(fixture("good", version: "good"))
+        let before = await library.snapshot()
+        let source = try fixture("large", version: "large")
+        var pck = Data("GDPC".utf8)
+        pck.append(Data(repeating: 0x5a, count: 9 * 1024 * 1024))
+        try pck.write(to: source.appendingPathComponent("SlayTheSpire2.pck"))
+        // First reading permits import; the 8 MiB checkpoint reports serious heat.
+        readings.stop(after: 2)
+        do {
+            _ = try await library.importDirectory(source)
+            XCTFail("Import continued after thermal limit")
+        } catch LauncherError.thermalLimited { }
+        let after = await library.snapshot()
+        XCTAssertEqual(before, after)
+        XCTAssertEqual(try fm.contentsOfDirectory(atPath: root.appendingPathComponent("payloads").path).count, 1)
+        XCTAssertTrue(try fm.contentsOfDirectory(atPath: root.appendingPathComponent("staging").path).isEmpty)
+    }
+
+    func testSelectingCurrentProfileDoesNotRewriteIndex() async throws {
+        let root = temporary.appendingPathComponent("library")
+        let library = try PayloadLibrary(root: root)
+        _ = try await library.importDirectory(fixture("source", version: "test"))
+        let state = await library.snapshot()
+        let index = root.appendingPathComponent("library.json")
+        let marker = Date(timeIntervalSince1970: 100)
+        try fm.setAttributes([.modificationDate: marker], ofItemAtPath: index.path)
+        try await library.select(XCTUnwrap(state.selectedProfileID))
+        let attributes = try fm.attributesOfItem(atPath: index.path)
+        XCTAssertEqual(attributes[.modificationDate] as? Date, marker)
+    }
+}
+
+/// Thread-safe synthetic thermal readings; never changes the host's power state.
+private final class TestConditions: @unchecked Sendable {
+    private let lock = NSLock()
+    private var calls = 0
+    private var stopAt: Int?
+    func stop(after count: Int?) {
+        lock.lock()
+        defer { lock.unlock() }
+        calls = 0
+        stopAt = count
+    }
+    func read() -> ImportConditions {
+        lock.lock()
+        defer { lock.unlock() }
+        calls += 1
+        return ImportConditions(heat: stopAt.map({ calls >= $0 }) == true ? .hot : .normal)
     }
 }

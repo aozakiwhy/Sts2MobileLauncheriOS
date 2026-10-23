@@ -65,6 +65,22 @@ Apple App Review 2.5.2 对下载并执行改变 App 功能的代码有约束。�
 
 先实现公开列表 / item 元数据，再实现带授权的实际内容下载、hash 校验、前置依赖、隔离 staging、明确冲突确认与安装索引。只有选定运行时实际验证 C# / Harmony 能力后才启用加载。每个游戏版本与模组组合需要单独标记支持状态，Android compatibility target 不得自动视为 iOS 支持证明。
 
+## 性能优化与验收边界
+
+### 已实现：启动器自身开销
+
+本地导入从“复制 PCK / DLL，再读取完整文件算 hash”改为在同一复制流计算摘要。对大小分别为 P、D 的两个文件，少一次合计 P+D 字节的逻辑文件读取；这不是温度、耗电或耗时下降百分比。仍保留 1 MiB 分块和输出错误检查，摘要不代表安装后对介质进行读回校验。
+
+导入使用 utility 任务与协作 checkpoint；8 MiB / 128 条目检查取消、系统热状态和低电量状态。低电量 / fair 状态降低持续工作占空比；serious / critical 停止导入并回滚未提交数据。没有空闲温度轮询、保持屏幕常亮、常驻后台或并行大文件导入。actor 因 await 可重入，必须保留 importing guard，避免两个事务并发覆盖索引。重选同配置不落盘，版本列表缓存 payload 查找。
+
+### 未实现：游戏帧率和热稳定性
+
+游戏引擎尚未接入，没有可真实应用的帧率限制、渲染分辨率或特效控制，不能添加无消费者的“省电 / 高性能”开关并宣称生效。AOT 本身也不是低温或稳定帧率的保证。
+
+引擎接通后，先测 iPhone 15 Pro 上的固定场景：菜单、普通战斗、多特效战斗、切后台恢复与读档；明确游戏版本、MOD、系统 build、是否充电、屏幕亮度、环境与画质设置。每组持续至少 20 分钟，记录帧时间分布（中位数 / P95 / P99）、实际 FPS、系统热状态变化、内存峰值与崩溃。系统 thermalState 是压力等级，不是摄氏温度；温度数字仅在有可追溯测量方式时报告。
+
+之后比较真实接入的 30 / 60 FPS 上限、渲染分辨率及经过验证的特效预算；严重热状态时降档，冷却后设置滞回再恢复，避免来回跳档。优先处理主线程 / GPU 热点、资源重复加载、首次 shader 编译和内存尖峰；不得通过修改玩法、存档或删除游戏内容来掩盖帧耗时。用户尚无可玩真机包，因此当前没有这些实测数据，也不承诺稳定 60 FPS。
+
 ## 官方参考
 
 - [Godot C# 平台支持](https://docs.godotengine.org/en/stable/tutorials/scripting/c_sharp/index.html)
@@ -74,5 +90,7 @@ Apple App Review 2.5.2 对下载并执行改变 App 功能的代码有约束。�
 - [.NET NativeAOT 限制](https://learn.microsoft.com/dotnet/core/deploying/native-aot/)
 - [.NET iOS 解释执行](https://learn.microsoft.com/dotnet/maui/macios/interpreter)
 - [Apple 已注册设备分发](https://developer.apple.com/documentation/xcode/distributing-your-app-to-registered-devices)
+- [Apple 热状态 API](https://developer.apple.com/documentation/foundation/processinfo/thermalstate-swift.property)
+- [Apple 低电量模式节能指引](https://developer.apple.com/library/archive/documentation/Performance/Conceptual/EnergyGuide-iOS/LowPowerMode.html)
 
 这些资料限定设计边界，不构成本项目已通过真机测试、取得分发授权或通过审核的证明。
