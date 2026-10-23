@@ -26,6 +26,12 @@ Apple App Review 2.5.2 对下载并执行改变 App 功能的代码有约束。�
 
 核心 XCTest 覆盖安装 / 选择 / 重启、存档根隔离、无效 PCK、缺文件、符号链接拒绝、索引损坏、索引写失败回滚、取消、重叠目录、无符号 64 位 Manifest ID 和未接 runtime 拒绝启动。macOS CI 应执行 `swift test` 与 iOS 模拟器编译。仍需实体设备 / Files provider 的 UI 和大文件取消 smoke。
 
+### 用户设备与交付方向
+
+目标设备：用户提供 iPhone 15 Pro，系统描述为 iOS 26 / 27；用户本地没有 Mac / Xcode，使用 IPA 安装。当前 CI 已增加 ARM64 真机未签名 IPA 交付，签名由用户安装工具完成；具体系统小版本 / build 与签名工具仍待确认。未进行该设备实测，不承诺未来或未验证系统的兼容性。
+
+这决定构建放在 GitHub 的 macOS runner，不能以要求用户安装本地 Xcode 作为唯一交付路径。运行时研究优先评估普通签名环境可用的解释执行 / AOT 方案；不得假定安装 IPA 自动获得 JIT。Microsoft NativeAOT 文档明确不支持动态 Assembly.LoadFile，因此它不能直接满足任意历史游戏 DLL 和 C# 模组动态加载。Mono 解释执行与 Harmony 动态补丁的兼容性仍需单独实证，不能仅开启 UseInterpreter 就宣布移植成功。
+
 ### 2. 最小运行时验证（阻塞游戏启动）
 
 需要 macOS + Xcode、目标 iPhone 的 iOS 版本与芯片、预期签名 / 安装方式；这些信息决定可用的运行时路线。先构建有触摸、音频与生命周期处理的合成 Godot C# 场景，分别记录：
@@ -57,5 +63,8 @@ Apple App Review 2.5.2 对下载并执行改变 App 功能的代码有约束。�
 - [Godot iOS 导出](https://docs.godotengine.org/en/stable/tutorials/export/exporting_for_ios.html)
 - [Apple App Review Guidelines，2.5.2](https://developer.apple.com/app-store/review/guidelines/)
 - [Steam ICloudService](https://partner.steamgames.com/doc/webapi/ICloudService)
+- [.NET NativeAOT 限制](https://learn.microsoft.com/dotnet/core/deploying/native-aot/)
+- [.NET iOS 解释执行](https://learn.microsoft.com/dotnet/maui/macios/interpreter)
+- [Apple 已注册设备分发](https://developer.apple.com/documentation/xcode/distributing-your-app-to-registered-devices)
 
 这些资料限定设计边界，不构成本项目已通过真机测试、取得分发授权或通过审核的证明。

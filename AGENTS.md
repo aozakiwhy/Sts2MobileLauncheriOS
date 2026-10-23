@@ -8,7 +8,7 @@
 - `ios/App` 为 SwiftUI 原生壳，`ios/Core` 为独立 Swift package，`ios/project.yml` 通过 XcodeGen 生成工程；完整边界见 `ios/README.md` 与 `doc/plan/ios-port.md`。
 - 当前仅实现本地解压目录导入、私有 payload / 隔离 profile 与选择持久化，**没有 iOS 游戏运行时、Steam 会话、云存档或原生 Workshop 下载**。不得把 Android target、模拟器壳构建或文件头校验描述为 iOS 游戏可玩。
 - iOS 索引使用独立 schema 1，位于 Application Support 的 `Sts2Launcher/library.json`；UUID 路径不能用用户输入的版本标签代替。不能读取 Android 索引或静默合并两种格式。
-- macOS 验证入口：`cd ios/Core && swift test`；随后在 `ios/` 执行 `xcodegen generate` 与 README 中的 `xcodebuild`。CI 配置为 `.github/workflows/ios.yml`，输出仅为模拟器版本管理器 `.app`，不是设备 IPA。
+- macOS 验证入口：`cd ios/Core && swift test`；随后在 `ios/` 执行 `xcodegen generate` 与 README 中的 `xcodebuild`。CI 配置为 `.github/workflows/ios.yml`，输出模拟器 `.app` 与 `ios-device-preview-unsigned` 真机未签名 IPA；`ios/package-unsigned.sh` 验证 iPhoneOS / ARM64 / Mach-O device 平台，不能把模拟器包充当真机包。用户须自行通过兼容安装工具签名，IPA 仍仅为版本管理器，不含游戏运行时。
 - 不提交生成的 Xcode 工程、DerivedData、游戏文件、Apple 签名资产；新增运行时须先完成合成 iPhone 验证，再接入游戏。Android importer 构建要求仍适用，但环境缺失应明确报告，不声称通过。
 
 ## 0. 总原则

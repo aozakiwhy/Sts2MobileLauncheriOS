@@ -74,6 +74,7 @@ ios/*.xcodeproj/
 ios/**/.build/
 ios/**/.swiftpm/
 ios/DerivedData/
+ios/build-device/
 *.ipa
 *.mobileprovision
 *.xcarchive/

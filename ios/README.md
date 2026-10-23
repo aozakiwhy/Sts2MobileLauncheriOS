@@ -46,7 +46,30 @@ open Sts2Launcher.xcodeproj
 
 在 Xcode 的 Signing & Capabilities 中选择自己的 Development Team、唯一 Bundle ID 和连接的 iPhone，再点击 Run。生成的工程不包含签名团队 / 私钥。模拟器 `.app` 不能安装到 iPhone，也不是 IPA。设备 IPA 需要在 macOS 使用匹配的签名配置归档与导出，不能在 Linux 环境生成并验证。
 
-`.github/workflows/ios.yml` 配置 macOS 核心测试与模拟器编译，产物名称为 `ios-simulator-preview`。工作流通过只代表版本管理器编译 / 测试通过，不代表游戏可玩。私有游戏文件不进入 CI。
+`.github/workflows/ios.yml` 配置 macOS 核心测试、模拟器编译、ARM64 真机 Release 编译及未签名 IPA 打包。产物分别为 `ios-simulator-preview` 和 `ios-device-preview-unsigned`。工作流通过只代表版本管理器编译 / 测试通过，不代表游戏可玩。私有游戏文件不进入 CI。
+
+## 没有 Mac：下载 IPA 预览版
+
+1. 打开仓库 **Actions → iOS launcher foundation**，选择当前开发分支最新且成功的构建。
+2. 在该次运行底部的 **Artifacts** 下载 **ios-device-preview-unsigned**（GitHub 可能要求登录）。
+3. 解压下载的 artifact ZIP，得到 `Sts2Launcher-preview-unsigned.ipa`。
+4. 将 IPA 交给自己的兼容签名 / 安装工具处理。**这是未签名包，不能直接点开安装**；安装工具需要有效签名与相应设备授权。具体步骤取决于所用工具。
+
+这条路线不要求用户本地有 Mac，也不要求将 Apple ID 密码、证书或私钥提交到本仓库。此包只用于检查启动器界面与本地导入，**没有游戏引擎，无法进行战斗或读档游玩**。IPA 签名 / 安装成功也不会自动获得 JIT 或让 PC DLL / Harmony 模组兼容 iOS。iPhone 15 Pro 的 ARM64 架构是编译目标，但 iOS 26 / 27 的实际兼容情况仍需对应系统版本真机测试，不能由编译通过推断。
+
+开发者本地生成相同包：
+
+```bash
+cd ios
+xcodegen generate
+xcodebuild -project Sts2Launcher.xcodeproj -scheme Sts2Launcher \
+  -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
+  -derivedDataPath build-device CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+bash package-unsigned.sh build-device/Build/Products/Release-iphoneos/Sts2Launcher.app \
+  build-device/Sts2Launcher-preview-unsigned.ipa
+```
+
+打包器检查 Info.plist、ARM64 架构与 Mach-O 的 iOS device 平台，拒绝把模拟器 `.app` 包装成 IPA。它不生成签名，不修改 entitlements，也不启用 JIT。
 
 ## 手动检查
 

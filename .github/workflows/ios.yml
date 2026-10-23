@@ -8,6 +8,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: ios-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
 jobs:
   build:
     runs-on: macos-15
@@ -31,3 +34,21 @@ jobs:
         with:
           name: ios-simulator-preview
           path: ios/build/Build/Products/Debug-iphonesimulator/Sts2Launcher.app
+      - name: Build unsigned ARM64 iPhone application
+        working-directory: ios
+        run: >-
+          xcodebuild -project Sts2Launcher.xcodeproj -scheme Sts2Launcher
+          -configuration Release -sdk iphoneos -destination 'generic/platform=iOS'
+          -derivedDataPath build-device CODE_SIGNING_ALLOWED=NO
+          CODE_SIGNING_REQUIRED=NO build
+      - name: Package unsigned device IPA
+        working-directory: ios
+        run: >-
+          bash package-unsigned.sh
+          build-device/Build/Products/Release-iphoneos/Sts2Launcher.app
+          build-device/Sts2Launcher-preview-unsigned.ipa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-device-preview-unsigned
+          if-no-files-found: error
+          path: ios/build-device/Sts2Launcher-preview-unsigned.ipa
