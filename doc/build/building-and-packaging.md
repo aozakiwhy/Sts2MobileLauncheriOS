@@ -1,5 +1,9 @@
 # 构建与打包流程
 
+## iOS 独立预览工程
+
+`ios/` 新增 SwiftUI 本地版本管理器，构建入口为 [ios/README.md](../../ios/README.md)。需要 macOS、完整 Xcode、XcodeGen；先 `cd ios/Core && swift test`，再生成 Xcode 项目并执行模拟器构建。`.github/workflows/ios.yml` 提供相同检查，并编译 ARM64 真机 Release，通过 `ios/package-unsigned.sh` 生成 `Sts2Launcher-preview-unsigned.ipa`，发布为 `ios-device-preview-unsigned` artifact。打包前检查 iPhoneOS / ARM64 / Mach-O device 平台；未签名 IPA 需要用户的安装工具签名后安装，不等于可直接安装的签名发行包。无需用户本地有 Mac。当前未包含游戏运行时，构建壳通过不代表游戏移植成功。以下脚本只构建 Android。
+
 ## 1. 本地配置入口
 
 构建脚本通过仓库根目录的两个本地文件读取机器相关配置：

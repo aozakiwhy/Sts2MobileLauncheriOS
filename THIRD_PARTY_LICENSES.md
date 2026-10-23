@@ -4,6 +4,10 @@
 
 ## 项目 LICENSE 建议
 
+iOS 私有输入工具参考 [jhaizhou-ops/sts2-ios](https://github.com/jhaizhou-ops/sts2-ios)（commit `be1144212c7d5ac5d6c78fa56f7cb1d969397389`，原创工具 / 补丁 MIT，Copyright 2026 jhaizhou-ops）。`tools/ios/core-patches.json` 为其补丁清单的基础移植子集，`prepare_pck.py` 参考 PCK 布局与 Sentry 隔离思路并加入 Bootstrap / ECFG 适配；原始完整许可保留在 `tools/ios/UPSTREAM_LICENSE.txt`。许可证不覆盖游戏资产、FMOD 或 Spine。本仓库不分发游戏、织入后的游戏 DLL 或第三方 native SDK。
+
+新增 iOS 工程使用 Apple 平台 SDK（SwiftUI / Foundation / CryptoKit / XCTest），不复制其实现；使用受对应 Apple SDK 条款约束。Xcode 工程生成工具 [XcodeGen](https://github.com/yonaskolb/XcodeGen) 使用 MIT 许可证，仅用于开发 / CI，不打入 App。iOS 数据分层参考本仓库已有 payload / profile 架构，Swift 代码为独立实现，目前没有引入第三方 Steam 协议实现或游戏运行时。
+
 建议本仓库**原创代码**采用 **MIT License**（已在 [`LICENSE`](LICENSE) 中添加）。理由：
 
 - 直接参考的 `StS2-Launcher_Mod_Manager` 使用 MIT；Godot Android template 也是 MIT。

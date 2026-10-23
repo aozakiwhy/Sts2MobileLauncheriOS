@@ -1,0 +1,34 @@
+name: Sts2Launcher
+options:
+  bundleIdPrefix: com.aozakiwhy
+  deploymentTarget:
+    iOS: "16.0"
+packages:
+  LauncherCore:
+    path: Core
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    CODE_SIGN_STYLE: Automatic
+targets:
+  Sts2Launcher:
+    type: application
+    platform: iOS
+    sources: [App]
+    dependencies:
+      - package: LauncherCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.aozakiwhy.sts2launcher
+        TARGETED_DEVICE_FAMILY: "1,2"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: "尖塔 iOS 预览"
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: 1
+schemes:
+  Sts2Launcher:
+    build:
+      targets:
+        Sts2Launcher: all

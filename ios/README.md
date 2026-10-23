@@ -1,0 +1,108 @@
+# iOS 启动器开发预览
+
+**这是原生版本管理器基础工程，尚不能运行《杀戮尖塔 2》，不是已完成的游戏移植，也没有可玩的 IPA。**
+
+## 当前功能
+
+- SwiftUI 原生 iPhone / iPad 界面，最低 iOS 16。
+- 无需登录的本地版本库：通过系统文件选择器导入**已解压的 PC 游戏根目录**。
+- 分块复制到私有 staging，检查必需文件、PCK / PE 文件头与版本信息，计算 PCK 和 DLL 的 SHA-256。
+- 每次导入生成独立 UUID、存档目录与模组目录。切换仅修改选中配置，不复制游戏或覆盖其他配置。
+- 安装失败 / 取消回滚，索引原子写入；损坏索引报错并保留原文件，不静默重置。
+- 拒绝符号链接、特殊文件、大小写 / Unicode 归一化重名、重叠来源目录，限制总计 16 GiB / 100,000 个条目。
+- 提供 Steam 创意工坊的**浏览器链接**，不提供原生下载。
+
+## 安装限制与性能边界
+
+当前 SwiftUI 预览包不要求越狱、不使用 JIT，也不绑定特定签名工具；未签名 IPA 仍需要用户的安装工具与有效签名 / 设备授权。签名安装与越狱是不同步骤，安装成功不证明未来游戏运行时具备动态代码能力。具体签名有效期、可安装设备和所需准备取决于用户的证书、描述文件、系统与安装方式。
+
+**当前没有游戏引擎，所以不能据此宣称游戏低温、稳定 60 FPS 或无需任何运行时准备。** iOS 26 / 27 与 iPhone 15 Pro 仍未做实体设备安装 / 游戏实测。构建通过不等于真机性能认证。
+
+本地导入已做的开销控制：
+
+- PCK / DLL 在复制时流式计算 SHA-256，不再完成复制后重读整个文件；摘要对应写入数据，仍检查基本文件头，但不是安装后全盘读回校验。
+- 文件使用 1 MiB 分块，单个导入事务；导入任务使用 utility 优先级提示，不并行抢占多个大文件。取消会传递到实际复制任务。
+- 每复制约 8 MiB 或处理 128 个条目进行协作检查：正常时让出执行机会；低电量模式每次等待 25 ms，fair 温度状态等待 50 ms；serious / critical 时停止当前导入，清理未提交数据，保留原有版本，降温后需重试。这些数值是保守初始策略，不是实测的最佳功耗参数。
+- 切后台取消导入，不申请后台常驻或保持屏幕常亮；空闲页面没有新增温度轮询或循环扫描。
+- 重选当前配置不再重写索引；版本行用已缓存的 payload 字典查找，避免每行遍历全部版本。
+
+新增回归验证跨分块摘要与实际文件内容一致、导入前 / 导入中过热时的拒绝与回滚、冷却后可重试、重选当前配置不写磁盘。上述变化减少了可确认的重复工作，但未测量实体 iPhone 的温度、能耗、峰值内存或游戏帧率改善。有关后续游戏阶段的测量方案见 [iOS 移植设计与验收](../doc/plan/ios-port.md)。
+
+文件头检查仅确认基本容器形态，不是完整 PCK / 程序集验证或兼容认证。当前导入器不修改、加载、执行 PC 文件，也不复用 Android 的 PCK patch。
+
+## 尚未实现
+
+| 用户目标 | 当前状态 / 必要工作 |
+| --- | --- |
+| 游客本地游玩 | 只有游客版本管理；缺少可运行游戏的 iOS 引擎与兼容层 |
+| Steam 登录 / Steam Guard | 未实现，不采集密码或令牌 |
+| Steam Cloud 存档 | 未实现；需要有效授权会话、正确的云文件协议、冲突检测与拉取前备份 |
+| 在线下载历史版本 | 未实现；需移植 SteamPipe、校验拥有权和 depot 授权；不能保证所有历史 Manifest 可访问 |
+| 创意工坊原生下载 | 未实现；网页浏览不等于下载 / 订阅接口 |
+| 普通 C# 模组运行 | 未实现；需验证动态代码、Harmony / MonoMod、原生依赖与每个游戏版本 |
+| 游戏启动 | 明确拒绝启动，不使用计时器或假成功替代运行时 |
+
+浏览器 Steam OpenID 身份不能代替游戏 depot / Steam Cloud 授权。游客可以导入自己合法获得的本地文件；游客在线下载本体需要另外存在且有权分发的来源，本工程未配置此类来源。
+
+## 在 macOS 构建
+
+安装完整 Xcode 并完成首次启动 / SDK 安装。XcodeGen 仅用于生成项目，不作为 App 运行时依赖：
+
+```bash
+brew install xcodegen
+cd ios/Core
+swift test
+cd ..
+xcodegen generate
+xcodebuild -project Sts2Launcher.xcodeproj -scheme Sts2Launcher \
+  -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+  -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+open Sts2Launcher.xcodeproj
+```
+
+在 Xcode 的 Signing & Capabilities 中选择自己的 Development Team、唯一 Bundle ID 和连接的 iPhone，再点击 Run。生成的工程不包含签名团队 / 私钥。模拟器 `.app` 不能安装到 iPhone，也不是 IPA。设备 IPA 需要在 macOS 使用匹配的签名配置归档与导出，不能在 Linux 环境生成并验证。
+
+`.github/workflows/ios.yml` 配置 macOS 核心测试、模拟器编译、ARM64 真机 Release 编译及未签名 IPA 打包。产物分别为 `ios-simulator-preview` 和 `ios-device-preview-unsigned`。工作流通过只代表版本管理器编译 / 测试通过，不代表游戏可玩。私有游戏文件不进入 CI。
+
+## 没有 Mac：下载 IPA 预览版
+
+1. 打开仓库 **Actions → iOS launcher foundation**，选择当前开发分支最新且成功的构建。
+2. 在该次运行底部的 **Artifacts** 下载 **ios-device-preview-unsigned**（GitHub 可能要求登录）。
+3. 解压下载的 artifact ZIP，得到 `Sts2Launcher-preview-unsigned.ipa`。
+4. 将 IPA 交给自己的兼容签名 / 安装工具处理。**这是未签名包，不能直接点开安装**；安装工具需要有效签名与相应设备授权。具体步骤取决于所用工具。
+
+这条路线不要求用户本地有 Mac，也不要求将 Apple ID 密码、证书或私钥提交到本仓库。此包只用于检查启动器界面与本地导入，**没有游戏引擎，无法进行战斗或读档游玩**。IPA 签名 / 安装成功也不会自动获得 JIT 或让 PC DLL / Harmony 模组兼容 iOS。iPhone 15 Pro 的 ARM64 架构是编译目标，但 iOS 26 / 27 的实际兼容情况仍需对应系统版本真机测试，不能由编译通过推断。
+
+开发者本地生成相同包：
+
+```bash
+cd ios
+xcodegen generate
+xcodebuild -project Sts2Launcher.xcodeproj -scheme Sts2Launcher \
+  -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
+  -derivedDataPath build-device CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+bash package-unsigned.sh build-device/Build/Products/Release-iphoneos/Sts2Launcher.app \
+  build-device/Sts2Launcher-preview-unsigned.ipa
+```
+
+打包器检查 Info.plist、ARM64 架构与 Mach-O 的 iOS device 平台，拒绝把模拟器 `.app` 包装成 IPA。它不生成签名，不修改 entitlements，也不启用 JIT。
+
+## 手动检查
+
+1. 在模拟器或 iPhone 上打开 App，首页应明确提示“目前无法启动游戏”。
+2. 在“文件”App 解压自己已拥有的游戏包。选择直接包含 `SlayTheSpire2.pck`、`release_info.json` 和 `data_sts2_windows_x86_64` 的目录，导入时保持前台。
+3. 导入两个不同版本，切换选中项，关闭 / 重新打开 App 检查选择保留。
+4. 使用缺少必需文件的目录验证拒绝导入且旧版本仍保留。大文件导入时点击取消或切到后台，回到前台确认没有新增版本。
+5. Steam 页应明确显示未接通；模组页只能跳转浏览器，不应出现“下载完成”或游戏启动成功。
+
+进程被系统强制终止时可能留下未被索引的 staging / payload 目录；当前不自动删除这些目录或猜测恢复。首次运行没有模拟版本条目。
+
+## 后续移植门槛
+
+新增 [私有输入准备工具](../tools/ios/README.md)，用于独立处理未加密 PCK v3 的已知 Sentry 元数据键，并提供固定上游的基础补丁清单。通用源码和合成测试公开；私有输入、诊断结果与处理后的资产不公开。这些工具尚未接入 SwiftUI App，预览 IPA 的游戏功能状态不变。
+
+详见 [iOS 移植设计与验收](../doc/plan/ios-port.md)。首先用不含商业内容的最小 Godot C# 场景在实体 iPhone 验证运行时，再接入本地游戏。Android `.so` / AAR 和 Harmony 补丁不能重命名后作为 iOS runtime 使用。
+
+## 开发参考
+
+数据分层参考本仓库 `PayloadManager` / `LaunchProfileManager` 的 payload 与 profile 边界，iOS 存储格式独立，不读取 Android 私有索引。工程生成工具为 [XcodeGen](https://github.com/yonaskolb/XcodeGen)（MIT）；其代码不打入 App。

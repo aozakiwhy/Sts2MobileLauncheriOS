@@ -6,6 +6,7 @@ changelog 主要用于记录 agent 修改过程、验证流水和本地接力信
 
 ## 文档地图
 
+- [`../ios/README.md`](../ios/README.md) / [`plan/ios-port.md`](plan/ios-port.md)：iOS 本地版本管理器构建、已实现功能、运行时移植阻塞项与验收边界；当前不能游玩。
 - [`architecture/project-structure.md`](architecture/project-structure.md)：仓库结构、目录职责、运行时私有目录、版本/兼容包模型。
 - [`build/building-and-packaging.md`](build/building-and-packaging.md)：本地环境、构建脚本、导入版/直装版 APK、兼容包打包。
 - [`build/adb-automation-debugging.md`](build/adb-automation-debugging.md)：连接 ADB 设备后的自动化调试、安装、导入、启动、日志和性能采集脚本。

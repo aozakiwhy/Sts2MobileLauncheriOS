@@ -68,3 +68,13 @@ android/assets/payload/
 
 # Python bytecode caches
 __pycache__/
+
+# Generated iOS projects, build caches and signing outputs
+ios/*.xcodeproj/
+ios/**/.build/
+ios/**/.swiftpm/
+ios/DerivedData/
+ios/build-device/
+*.ipa
+*.mobileprovision
+*.xcarchive/

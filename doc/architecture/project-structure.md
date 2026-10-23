@@ -1,5 +1,7 @@
 # 项目结构与版本模型
 
+新增 `ios/` 为独立 SwiftUI 本地版本管理工程，使用 Swift package `ios/Core`、UUID payload / profile 和 App 私有 `library.json`，不复用 Android runtime 或数据索引。目前不能启动游戏，Steam / Cloud / 原生 Workshop 下载未接通。见 [iOS 架构与验收](../plan/ios-port.md)。下文仍描述 Android 已有架构。
+
 ## 1. 分层定位
 
 本仓库把 Slay the Spire 2 Android 侧拆成三层：

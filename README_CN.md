@@ -1,3 +1,5 @@
+> **iOS 开发预览：**已新增 [SwiftUI 本地版本管理工程](ios/README.md)，支持目录导入与独立配置切换，**尚不能运行游戏**。Steam 登录 / 云存档、在线版本下载和原生创意工坊下载均未接通。[移植设计与验收](doc/plan/ios-port.md)记录剩余阻塞项。项目使用 [XcodeGen](https://github.com/yonaskolb/XcodeGen)（MIT，仅构建时）生成 Xcode 工程。
+
 <p align="center">
   <img src="doc/images/icon.png" width="128" alt="App Icon">
 </p>

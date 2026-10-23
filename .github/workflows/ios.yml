@@ -1,0 +1,60 @@
+name: iOS launcher foundation
+on:
+  push:
+    branches: [main, 'codex/ios-*']
+    paths: ['ios/**', 'tools/ios/**', '.github/workflows/ios.yml']
+  pull_request:
+    paths: ['ios/**', 'tools/ios/**', '.github/workflows/ios.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ios-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  pck-tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Synthetic PCK safety and metadata tests
+        run: python3 tools/ios/test_prepare_pck.py -v
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Core storage and safety tests
+        working-directory: ios/Core
+        run: swift test
+      - name: Generate Xcode project
+        working-directory: ios
+        run: |
+          brew install xcodegen
+          xcodegen generate
+      - name: Build iPhone simulator application
+        working-directory: ios
+        run: >-
+          xcodebuild -project Sts2Launcher.xcodeproj -scheme Sts2Launcher
+          -sdk iphonesimulator -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-simulator-preview
+          path: ios/build/Build/Products/Debug-iphonesimulator/Sts2Launcher.app
+      - name: Build unsigned ARM64 iPhone application
+        working-directory: ios
+        run: >-
+          xcodebuild -project Sts2Launcher.xcodeproj -scheme Sts2Launcher
+          -configuration Release -sdk iphoneos -destination 'generic/platform=iOS'
+          -derivedDataPath build-device CODE_SIGNING_ALLOWED=NO
+          CODE_SIGNING_REQUIRED=NO build
+      - name: Package unsigned device IPA
+        working-directory: ios
+        run: >-
+          bash package-unsigned.sh
+          build-device/Build/Products/Release-iphoneos/Sts2Launcher.app
+          build-device/Sts2Launcher-preview-unsigned.ipa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-device-preview-unsigned
+          if-no-files-found: error
+          path: ios/build-device/Sts2Launcher-preview-unsigned.ipa
