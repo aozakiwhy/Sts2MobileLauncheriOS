@@ -1,5 +1,9 @@
 # 构建与打包流程
 
+## iOS 独立预览工程
+
+`ios/` 新增 SwiftUI 本地版本管理器，构建入口为 [ios/README.md](../../ios/README.md)。需要 macOS、完整 Xcode、XcodeGen；先 `cd ios/Core && swift test`，再生成 Xcode 项目并执行模拟器构建。`.github/workflows/ios.yml` 提供相同检查。模拟器 `.app` 不能作为 iPhone IPA 安装；设备构建需要用户自己的签名配置。当前未包含游戏运行时，构建壳通过不代表游戏移植成功。以下脚本只构建 Android。
+
 ## 1. 本地配置入口
 
 构建脚本通过仓库根目录的两个本地文件读取机器相关配置：

@@ -3,6 +3,14 @@
 面向后续编码代理/维护者的项目速览与操作约定。当前目录为本仓库根目录。
 最后同步：2026-08-23。
 
+## iOS 独立基础工程（2026-10-23）
+
+- `ios/App` 为 SwiftUI 原生壳，`ios/Core` 为独立 Swift package，`ios/project.yml` 通过 XcodeGen 生成工程；完整边界见 `ios/README.md` 与 `doc/plan/ios-port.md`。
+- 当前仅实现本地解压目录导入、私有 payload / 隔离 profile 与选择持久化，**没有 iOS 游戏运行时、Steam 会话、云存档或原生 Workshop 下载**。不得把 Android target、模拟器壳构建或文件头校验描述为 iOS 游戏可玩。
+- iOS 索引使用独立 schema 1，位于 Application Support 的 `Sts2Launcher/library.json`；UUID 路径不能用用户输入的版本标签代替。不能读取 Android 索引或静默合并两种格式。
+- macOS 验证入口：`cd ios/Core && swift test`；随后在 `ios/` 执行 `xcodegen generate` 与 README 中的 `xcodebuild`。CI 配置为 `.github/workflows/ios.yml`，输出仅为模拟器版本管理器 `.app`，不是设备 IPA。
+- 不提交生成的 Xcode 工程、DerivedData、游戏文件、Apple 签名资产；新增运行时须先完成合成 iPhone 验证，再接入游戏。Android importer 构建要求仍适用，但环境缺失应明确报告，不声称通过。
+
 ## 0. 总原则
 
 - 本工程是 **Slay the Spire 2 Android 重构移植/启动器工程**，不是完整游戏源码仓库。

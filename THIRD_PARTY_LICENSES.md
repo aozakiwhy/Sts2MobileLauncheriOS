@@ -4,6 +4,8 @@
 
 ## 项目 LICENSE 建议
 
+新增 iOS 工程使用 Apple 平台 SDK（SwiftUI / Foundation / CryptoKit / XCTest），不复制其实现；使用受对应 Apple SDK 条款约束。Xcode 工程生成工具 [XcodeGen](https://github.com/yonaskolb/XcodeGen) 使用 MIT 许可证，仅用于开发 / CI，不打入 App。iOS 数据分层参考本仓库已有 payload / profile 架构，Swift 代码为独立实现，目前没有引入第三方 Steam 协议实现或游戏运行时。
+
 建议本仓库**原创代码**采用 **MIT License**（已在 [`LICENSE`](LICENSE) 中添加）。理由：
 
 - 直接参考的 `StS2-Launcher_Mod_Manager` 使用 MIT；Godot Android template 也是 MIT。

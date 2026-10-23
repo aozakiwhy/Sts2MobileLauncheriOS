@@ -1,3 +1,4 @@
+> **iOS development preview:** [`ios/README.md`](ios/README.md) describes the new SwiftUI local version manager and Xcode build. It **cannot run the game yet**; Steam authentication, Cloud, online version downloads and native Workshop downloads are not implemented. See the [port plan](doc/plan/ios-port.md). Xcode project generation uses [XcodeGen](https://github.com/yonaskolb/XcodeGen) (MIT, build-time only).
 
 <div align="right">
   <strong><a href="README_CN.md">🇨🇳 简体中文 (Chinese)</a></strong>
